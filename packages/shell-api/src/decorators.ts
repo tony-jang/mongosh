@@ -37,7 +37,12 @@ interface TypeSignature {
 interface Signatures {
   [key: string]: TypeSignature;
 }
-const signatures = {} as Signatures;
+
+if (!global['!!!mdb.signatures']) {
+  global['!!!mdb.signatures'] = {};
+}
+
+const signatures: Signatures = global['!!!mdb.signatures'];
 
 export const toIgnore = ['toReplString', 'shellApiType', 'constructor'];
 export function shellApiClassDefault(constructor: Function): void {
