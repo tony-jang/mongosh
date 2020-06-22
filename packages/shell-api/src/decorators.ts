@@ -38,12 +38,7 @@ interface Signatures {
   [key: string]: TypeSignature;
 }
 
-const signaturesGlobalIdentifier = '@@@mdb.signatures@@@';
-if (!global[signaturesGlobalIdentifier]) {
-  global[signaturesGlobalIdentifier] = {};
-}
-
-const signatures: Signatures = global[signaturesGlobalIdentifier];
+const signatures: Signatures = {};
 
 export const toIgnore = ['toReplString', 'shellApiType', 'constructor'];
 export function shellApiClassDefault(constructor: Function): void {
