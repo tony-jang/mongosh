@@ -37,8 +37,7 @@ interface TypeSignature {
 interface Signatures {
   [key: string]: TypeSignature;
 }
-
-const signatures: Signatures = {};
+const signatures = {} as Signatures;
 
 export const toIgnore = ['toReplString', 'shellApiType', 'constructor'];
 export function shellApiClassDefault(constructor: Function): void {
