@@ -49,7 +49,7 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
               cliOption
             );
 
-            console.log(`[POST] /connect: Instance Created (${uuid}/${driverUri})`);
+            console.log(`[POST/OK] /connect: Instance Created (${uuid}/${driverUri})`);
 
             writeData(
               response,
