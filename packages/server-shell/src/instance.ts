@@ -32,8 +32,12 @@ class Instance {
     this.start();
   }
 
-  async connect(driverUri: string, driverOptions: NodeOptions): Promise<any> {
+  async connect(driverUri: string, driverOptions: NodeOptions): Promise<CliServiceProvider> {
     return await CliServiceProvider.connect(driverUri, driverOptions, this.options);
+  }
+
+  async close(): Promise<void> {
+    await this.internalState.initialServiceProvider.close(false);
   }
 
   start(): void {

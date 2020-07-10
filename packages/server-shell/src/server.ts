@@ -66,6 +66,27 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
         });
         break;
 
+      case '/disconnect':
+        try {
+          const sessionId = request.headers['x-session-id'].toString();
+          if (sessionId in sessionObj) {
+            const instance = (sessionObj[sessionId] as Instance);
+            await instance.close();
+
+            sessionObj[sessionId] = undefined;
+
+            response.writeHead(200);
+            response.end();
+            console.log(`[DELETE/OK] /disconnect (target: ${sessionId})`);
+          } else {
+            writeData(response, 400, 'text/plain', 'Session Id Not found');
+          }
+        } catch (ex) {
+          writeData(response, 400, 'text/plain', ex.toString());
+          console.log('[DELETE/ERR] /disconnect');
+        }
+        break;
+
       // execute Javascript code in custom context.
       case '/eval':
         if (request.method !== 'POST') {
@@ -77,17 +98,22 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
         request.on('end', async() => {
           try {
             const sessionId = request.headers['x-session-id'].toString();
-            const instance = (sessionObj[sessionId] as Instance);
 
-            const data = JSON.stringify(await instance.evaluation(body));
+            if (sessionId in sessionObj) {
+              const instance = (sessionObj[sessionId] as Instance);
 
-            writeData(
-              response,
-              200,
-              'application/json',
-              data
-            );
-            console.log('[POST/OK] /eval');
+              const data = JSON.stringify(await instance.evaluation(body));
+
+              writeData(
+                response,
+                200,
+                'application/json',
+                data
+              );
+              console.log(`[POST/OK] /eval (target: ${sessionId})`);
+            } else {
+              writeData(response, 400, 'text/plain', 'Session Id Not found');
+            }
           } catch (ex) {
             writeData(response, 400, 'text/plain', ex.toString());
             console.log('[POST/ERR] /eval');
