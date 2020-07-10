@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Instance from './instance';
 import { parseCliArgsFromJson } from './json-arg-mapper';
 
-const sessionObj = {};
+const sessionObj: {[uuid: string]: Instance} = {};
 
 const writeData = (response: ServerResponse, statusCode: number, contentType: string, data: any): void => {
   response.writeHead(statusCode, { 'Content-Type': contentType });
