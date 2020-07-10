@@ -2,7 +2,7 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
 import url from 'url';
-import { mapCliToDriver } from './index';
+import mapCliToDriver from './arg-mapper';
 import { generateUri } from '@mongosh/service-provider-server';
 import { v4 as uuidv4 } from 'uuid';
 import Instance from './instance';
@@ -73,7 +73,7 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
             const instance = (sessionObj[sessionId] as Instance);
             await instance.close();
 
-            sessionObj[sessionId] = undefined;
+            delete sessionObj[sessionId];
 
             response.writeHead(200);
             response.end();
