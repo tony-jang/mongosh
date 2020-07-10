@@ -9,12 +9,14 @@ import Instance from './instance';
 import { parseCliArgsFromJson } from './json-arg-mapper';
 
 const sessionObj: {[uuid: string]: Instance} = {};
+const acorn = require('acorn');
 
 const writeData = (response: ServerResponse, statusCode: number, contentType: string, data: any): void => {
   response.writeHead(statusCode, { 'Content-Type': contentType });
   response.end(data);
 };
 
+// eslint-disable-next-line complexity
 export const requestListener = async(request: IncomingMessage, response: ServerResponse): Promise<void> => {
   const resource = url.parse(request.url).pathname;
   let isHandled = false;
@@ -26,6 +28,25 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
 
   try {
     switch (resource) {
+      // clear all connected instance.
+      case '/clear':
+        if (request.method !== 'DELETE') {
+          break;
+        } else {
+          isHandled = true;
+        }
+
+        for (const session in sessionObj) {
+          if (sessionObj.hasOwnProperty(session)) {
+            delete sessionObj[session];
+          }
+        }
+
+        response.writeHead(200);
+        response.end();
+        console.log('[DELETE/OK] /clear: All instances are cleared.');
+        break;
+
       // create new instance to connect.
       case '/connect':
         if (request.method !== 'POST') {
@@ -66,7 +87,13 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
         });
         break;
 
+      // remove exists instance.
       case '/disconnect':
+        if (request.method !== 'DELETE') {
+          break;
+        } else {
+          isHandled = true;
+        }
         try {
           const sessionId = request.headers['x-session-id'].toString();
           if (sessionId in sessionObj) {
@@ -102,13 +129,19 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
             if (sessionId in sessionObj) {
               const instance = (sessionObj[sessionId] as Instance);
 
-              const data = JSON.stringify(await instance.evaluation(body));
+              const node = acorn.parse(body);
+              const result = [];
+
+              for (const expr of node.body.map(n => body.substring(n.start, n.end))) {
+                const data = await instance.evaluation(expr);
+                result.push(data);
+              }
 
               writeData(
                 response,
                 200,
                 'application/json',
-                data
+                JSON.stringify(result)
               );
               console.log(`[POST/OK] /eval (target: ${sessionId})`);
             } else {
