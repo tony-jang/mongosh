@@ -7,6 +7,7 @@ import { generateUri } from '@mongosh/service-provider-server';
 import { v4 as uuidv4 } from 'uuid';
 import Instance from './instance';
 import { parseCliArgsFromJson } from './json-arg-mapper';
+import { CursorIterationResult } from '@mongosh/shell-api';
 
 const sessionObj: {[uuid: string]: Instance} = {};
 const acorn = require('acorn');
@@ -114,6 +115,28 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
         }
         break;
 
+      // parse script to executable line array. [Don't validate session-id]
+      case '/parse':
+        if (request.method !== 'POST') {
+          break;
+        } else {
+          isHandled = true;
+        }
+
+        request.on('end', async() => {
+          const node = acorn.parse(body);
+          const data = node.body.map(n => {return { start: n.start, end: n.end };});
+
+          writeData(
+            response,
+            200,
+            'application/json',
+            JSON.stringify(data)
+          );
+        });
+
+        break;
+
       // execute Javascript code in custom context.
       case '/eval':
         if (request.method !== 'POST') {
@@ -128,20 +151,13 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
 
             if (sessionId in sessionObj) {
               const instance = (sessionObj[sessionId] as Instance);
-
-              const node = acorn.parse(body);
-              const result = [];
-
-              for (const expr of node.body.map(n => body.substring(n.start, n.end))) {
-                const data = await instance.evaluation(expr);
-                result.push(data);
-              }
+              const data = await instance.evaluation(body);
 
               writeData(
                 response,
                 200,
                 'application/json',
-                JSON.stringify(result)
+                JSON.stringify(data)
               );
               console.log(`[POST/OK] /eval (target: ${sessionId})`);
             } else {
@@ -153,11 +169,64 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
           }
         });
         break;
+
+      case '/read':
+        if (request.method !== 'GET') {
+          break;
+        } else {
+          isHandled = true;
+        }
+
+        try {
+          const sessionId = request.headers['x-session-id'].toString();
+          const cursorId = request.headers['x-cursor-id'].toString();
+          let chunkSize = parseInt(request.headers['x-chunk-size'].toString(), 10);
+
+          if (!(sessionId in sessionObj)) {
+            writeData(response, 400, 'text/plain', 'Session Id Not found');
+            break;
+          }
+
+          const instance = (sessionObj[sessionId] as Instance);
+
+          if (!(instance.cursor && instance.cursor.uuid === cursorId)) {
+            writeData(response, 400, 'text/plain', 'Cursor Id Not found');
+            break;
+          }
+
+          const cursor = instance.cursor.cursor;
+
+          if (!chunkSize) {
+            chunkSize = 20;
+          }
+          const results = new CursorIterationResult();
+
+          for (let i = 0; i < chunkSize; i++) {
+            if (!await cursor.hasNext() || cursor.isClosed()) {
+              instance.cursor = undefined;
+              break;
+            }
+
+            results.push(await cursor.next());
+          }
+
+          writeData(
+            response,
+            200,
+            'application/json',
+            JSON.stringify(results)
+          );
+          console.log(`[POST/OK] /eval (target: ${sessionId})`);
+        } catch (ex) {
+          writeData(response, 400, 'text/plain', ex.toString());
+          console.log('[POST/ERR] /eval');
+        }
+        break;
       default:
         break;
     }
   } catch (ex) {
-    writeData(response, 400, 'text/plain', ex.toString());
+    writeData(response, 500, 'text/plain', ex.toString());
     return;
   }
 

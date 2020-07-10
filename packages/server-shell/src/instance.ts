@@ -4,10 +4,12 @@
 import { CliOptions, NodeOptions, CliServiceProvider } from '@mongosh/service-provider-server';
 import ShellEvaluator from '@mongosh/shell-evaluator';
 import Nanobus from 'nanobus';
-import { ShellInternalState, shellApiType, ShellResult } from '@mongosh/shell-api';
+import { ShellInternalState, shellApiType, ShellResult, Cursor, AggregationCursor } from '@mongosh/shell-api';
 import { MongoshWarning } from '@mongosh/errors';
 import repl from 'repl';
 import util from 'util';
+import { v4 as uuidv4 } from 'uuid';
+
 
 class Instance {
   private shellEvaluator: ShellEvaluator;
@@ -18,6 +20,8 @@ class Instance {
   private options: CliOptions;
   private repl: repl.REPLServer;
 
+  cursor: {uuid: string; cursor: Cursor | AggregationCursor};
+
   constructor(driverUri: string, driverOptions: NodeOptions, options: CliOptions) {
     this.options = options;
     this.bus = new Nanobus('mongosh');
@@ -27,6 +31,7 @@ class Instance {
   async setup(driverUri: string, driverOptions: NodeOptions): Promise<void> {
     const initialServiceProvider = await this.connect(driverUri, driverOptions);
     this.internalState = new ShellInternalState(initialServiceProvider, this.bus, this.options);
+
     this.shellEvaluator = new ShellEvaluator(this.internalState, this);
     await this.internalState.fetchConnectionInfo();
     this.start();
@@ -49,9 +54,15 @@ class Instance {
     const originalEval = util.promisify(this.repl.eval);
 
     const customEval = async(input, context, filename, callback): Promise<any> => {
-      let result;
+      let result: ShellResult;
       try {
         result = await this.shellEvaluator.customEval(originalEval, input, context, filename);
+        if (result.type === 'Cursor') {
+          const uuid = uuidv4();
+          this.cursor = { uuid, cursor: this.internalState.currentCursor };
+
+          return callback(null, { type: 'CursorInfo', value: uuid } as ShellResult);
+        }
       } catch (err) {
         return callback(err);
       }
