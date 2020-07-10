@@ -34,6 +34,8 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
           isHandled = true;
         }
 
+        console.log('[POST] /connect: request');
+
         request.on('end', async() => {
           try {
             const cliOption = parseCliArgsFromJson(JSON.parse(body));
@@ -46,6 +48,8 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
               { appname: 'Mongo Shell Instance', ...driverOptions },
               cliOption
             );
+
+            console.log(`[POST] /connect: Instance Created (${uuid}/${driverUri})`);
 
             writeData(
               response,
@@ -83,8 +87,10 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
               'application/json',
               data
             );
+            console.log('[POST/OK] /eval');
           } catch (ex) {
             writeData(response, 400, 'text/plain', ex.toString());
+            console.log('[POST/ERR] /eval');
           }
         });
         break;

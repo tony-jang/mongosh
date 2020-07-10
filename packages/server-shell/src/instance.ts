@@ -49,7 +49,6 @@ class Instance {
       try {
         result = await this.shellEvaluator.customEval(originalEval, input, context, filename);
       } catch (err) {
-        console.log(err);
         return callback(err);
       }
       callback(null, result);
