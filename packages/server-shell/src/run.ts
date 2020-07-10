@@ -1,5 +1,11 @@
-import { CliRepl, parseCliArgs, mapCliToDriver, USAGE } from './index';
+/* eslint @typescript-eslint/no-unused-vars: 0, no-sync: 0*/
+
+import { parseCliArgs, mapCliToDriver, USAGE } from './index';
 import { generateUri } from '@mongosh/service-provider-server';
+import http from 'http';
+import { requestListener } from './server';
+import Instance from './instance';
+import ShellEvaluator from '@mongosh/shell-evaluator';
 
 try {
   const options = parseCliArgs(process.argv);
@@ -17,7 +23,8 @@ try {
     const driverUri = generateUri(options);
     const appname = `${process.title} ${version}`;
     /* eslint no-new:0 */
-    new CliRepl(driverUri, { appname, ...driverOptions }, options);
+    http.createServer(requestListener).listen(25849, '127.0.0.1');
+    console.log(`Server is listening on ${25849}`);
   }
 } catch (e) {
   // eslint-disable-next-line no-console
