@@ -18,10 +18,9 @@ class Instance {
   private options: CliOptions;
   private repl: repl.REPLServer;
 
-  constructor(driverUri: string, driverOptions: NodeOptions, options: CliOptions) {
+  constructor(options: CliOptions) {
     this.options = options;
     this.bus = new Nanobus('mongosh');
-    this.setup(driverUri, driverOptions);
   }
 
   async setup(driverUri: string, driverOptions: NodeOptions): Promise<void> {
