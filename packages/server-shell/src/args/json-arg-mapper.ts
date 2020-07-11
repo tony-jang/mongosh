@@ -1,5 +1,5 @@
 import { CliOptions } from '@mongosh/service-provider-server';
-import { parseCliArgs } from '.';
+import { parseCliArgs } from '..';
 
 const Mapping = {
   server: 'host',

@@ -4,7 +4,7 @@ import { mapCliToDriver } from '../index';
 import { generateUri } from '@mongosh/service-provider-server';
 import { v4 as uuidv4 } from 'uuid';
 import Instance from '../instance';
-import { parseCliArgsFromJson } from '../json-arg-mapper';
+import { parseCliArgsFromJson } from '../args/json-arg-mapper';
 import { PostHandler } from '../api-handler';
 
 const connect: PostHandler = async(request, response, body) => {
