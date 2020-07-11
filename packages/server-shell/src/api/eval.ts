@@ -4,7 +4,7 @@ import { PostHandler } from '../api-handler';
 import Instance from '../instance';
 
 const evaluation: PostHandler = async(request, response, body) => {
-  const sessionId = request.headers['x-session-id'].toString();
+  const sessionId = request.headers['x-session-id']?.toString();
 
   if (sessionId in sessionObj) {
     const instance = (sessionObj[sessionId] as Instance);
