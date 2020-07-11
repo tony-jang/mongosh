@@ -41,9 +41,10 @@ class Instance {
 
   start(): void {
     this.repl = repl.start({
-      terminal: true,
-      writer: this.writer
+      writer: this.writer,
+      prompt: '',
     });
+    this.repl.close();
 
     const originalEval = util.promisify(this.repl.eval);
 
@@ -96,7 +97,7 @@ class Instance {
       this.bus.emit('mongosh:error', result);
       this.shellEvaluator.revertState();
 
-      throw result;
+      throw result.message;
     }
 
     return result;

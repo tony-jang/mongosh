@@ -18,7 +18,7 @@ const connect: PostHandler = async(request, response, body) => {
   await instance.setup(driverUri, driverOptions);
 
   sessionObj[uuid] = instance;
-
+  console.log(`instance created: ${uuid}`);
   writer.json(response, {
     connectedUri: driverUri,
     sessionId: uuid,

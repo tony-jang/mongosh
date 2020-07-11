@@ -6,7 +6,7 @@ const data = (response: ServerResponse, statusCode: number, contentType: string,
 };
 
 const success = (response: ServerResponse): void => {
-  response.writeHead(400, { 'Content-Type': 'text/plain' } );
+  response.writeHead(200, { 'Content-Type': 'text/plain' } );
   response.end('');
 };
 
