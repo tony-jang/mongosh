@@ -10,7 +10,8 @@ const parse: PostHandler = async(request, response, data) => {
       .body
       .map(n => {
         return { start: n.start, end: n.end };
-      }));
+      })
+  );
 };
 
 export default parse;
