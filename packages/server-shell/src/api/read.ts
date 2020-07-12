@@ -5,7 +5,10 @@ import { GetHandler } from '../api-handler';
 const read: GetHandler = async(request, response) => {
   const sessionId = request.headers['x-session-id']?.toString();
   const cursorId = request.headers['x-cursor-id']?.toString();
-  const chunkSize = parseInt(request.headers['x-chunk-size']?.toString(), 10);
+
+  const chunkSize = request.headers.hasOwnProperty('x-chunk-size') ?
+    parseInt(request.headers['X-Chunk-Size']?.toString(), 10) : 20;
+
   if (sessionId in sessionObj) {
     const instance = sessionObj[sessionId];
     if (!instance.cursor) {
