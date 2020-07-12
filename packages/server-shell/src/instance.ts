@@ -8,6 +8,8 @@ import { ShellInternalState, shellApiType, ShellResult } from '@mongosh/shell-ap
 import { MongoshWarning } from '@mongosh/errors';
 import repl from 'repl';
 import util from 'util';
+import { v4 as uuidv4 } from 'uuid';
+import Cursor from './cursor';
 
 class Instance {
   private shellEvaluator: ShellEvaluator;
@@ -17,6 +19,7 @@ class Instance {
   private disableGreetingMessage: boolean;
   private options: CliOptions;
   private repl: repl.REPLServer;
+  cursor: { cursor: Cursor; uuid: string };
 
   constructor(options: CliOptions) {
     this.options = options;
@@ -49,9 +52,30 @@ class Instance {
     const originalEval = util.promisify(this.repl.eval);
 
     const customEval = async(input, context, filename, callback): Promise<any> => {
-      let result;
+      let result: ShellResult;
+      // Prevent multi Cursor
+      if (this.cursor && !this.cursor.cursor.isClosed()) {
+        return callback(new Error('Cursor is already opened.'));
+      }
+
       try {
         result = await this.shellEvaluator.customEval(originalEval, input, context, filename);
+        if (result.type === 'Cursor' || result.type === 'AggregationCursor') {
+          const c = this.internalState.currentCursor;
+
+          this.cursor = {
+            cursor: new Cursor(c.mongo, c, result.value),
+            uuid: uuidv4()
+          };
+
+          return callback(
+            null,
+            {
+              type: result.type + 'Info',
+              value: { cursorId: this.cursor.uuid }
+            } as ShellResult
+          );
+        }
       } catch (err) {
         return callback(err);
       }

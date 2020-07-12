@@ -44,6 +44,11 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
       resource: '/parse',
       method: 'POST',
       handler: allApi.parse,
+    },
+    {
+      resource: '/read',
+      method: 'GET',
+      handler: allApi.read,
     }
   ];
 
