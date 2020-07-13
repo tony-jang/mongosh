@@ -5,6 +5,7 @@ import { GetHandler } from '../api-handler';
 const clear: GetHandler = async(request, response) => {
   for (const session in sessionObj) {
     if (sessionObj.hasOwnProperty(session)) {
+      await sessionObj[session].close();
       delete sessionObj[session];
     }
   }
