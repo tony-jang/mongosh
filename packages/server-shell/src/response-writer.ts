@@ -20,4 +20,9 @@ const exception = (response: ServerResponse, error: Error): void => {
   response.end(error.toString());
 };
 
-export default { data, success, json, exception };
+const unauthorized = (response: ServerResponse, error: Error): void => {
+  response.writeHead(401, { 'Content-Type': 'text/plain' } );
+  response.end(error.toString());
+};
+
+export default { data, success, json, exception, unauthorized };

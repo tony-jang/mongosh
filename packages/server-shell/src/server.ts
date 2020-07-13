@@ -67,8 +67,11 @@ export const requestListener = async(request: IncomingMessage, response: ServerR
       }
     }
   } catch (ex) {
-    console.log(ex);
-    writer.exception(response, ex);
+    if (ex.codeName === 'Unauthorized') {
+      writer.unauthorized(response, ex);
+    } else {
+      writer.exception(response, ex);
+    }
     return;
   }
 
