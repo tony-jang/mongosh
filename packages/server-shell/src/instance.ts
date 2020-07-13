@@ -4,12 +4,12 @@
 import { CliOptions, NodeOptions, CliServiceProvider } from '@mongosh/service-provider-server';
 import ShellEvaluator from '@mongosh/shell-evaluator';
 import Nanobus from 'nanobus';
-import { ShellInternalState, shellApiType, ShellResult, Cursor, AggregationCursor } from '@mongosh/shell-api';
+import { ShellInternalState, shellApiType, ShellResult } from '@mongosh/shell-api';
 import { MongoshWarning } from '@mongosh/errors';
 import repl from 'repl';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
-
+import Cursor from './cursor';
 
 class Instance {
   private shellEvaluator: ShellEvaluator;
@@ -19,13 +19,11 @@ class Instance {
   private disableGreetingMessage: boolean;
   private options: CliOptions;
   private repl: repl.REPLServer;
+  cursor: { cursor: Cursor; uuid: string };
 
-  cursor: {uuid: string; cursor: Cursor | AggregationCursor};
-
-  constructor(driverUri: string, driverOptions: NodeOptions, options: CliOptions) {
+  constructor(options: CliOptions) {
     this.options = options;
     this.bus = new Nanobus('mongosh');
-    this.setup(driverUri, driverOptions);
   }
 
   async setup(driverUri: string, driverOptions: NodeOptions): Promise<void> {
@@ -47,21 +45,37 @@ class Instance {
 
   start(): void {
     this.repl = repl.start({
-      terminal: true,
-      writer: this.writer
+      writer: this.writer,
+      prompt: '',
     });
+    this.repl.close();
 
     const originalEval = util.promisify(this.repl.eval);
 
     const customEval = async(input, context, filename, callback): Promise<any> => {
       let result: ShellResult;
+      // Prevent multi Cursor
+      if (this.cursor && !this.cursor.cursor.isClosed()) {
+        return callback(new Error('Cursor is already opened.'));
+      }
+
       try {
         result = await this.shellEvaluator.customEval(originalEval, input, context, filename);
-        if (result.type === 'Cursor') {
-          const uuid = uuidv4();
-          this.cursor = { uuid, cursor: this.internalState.currentCursor };
+        if (result.type === 'Cursor' || result.type === 'AggregationCursor') {
+          const c = this.internalState.currentCursor;
 
-          return callback(null, { type: 'CursorInfo', value: uuid } as ShellResult);
+          this.cursor = {
+            cursor: new Cursor(c.mongo, c, result.value),
+            uuid: uuidv4()
+          };
+
+          return callback(
+            null,
+            {
+              type: result.type + 'Info',
+              value: { cursorId: this.cursor.uuid }
+            } as ShellResult
+          );
         }
       } catch (err) {
         return callback(err);
@@ -108,7 +122,7 @@ class Instance {
       this.bus.emit('mongosh:error', result);
       this.shellEvaluator.revertState();
 
-      throw result;
+      throw result.message;
     }
 
     return result;
